@@ -11,6 +11,8 @@ This is a small static page for comparing MediaTek MT7981 routers with an OpenWR
 - `script.js` loads the CSV files, parses the data, and builds the table, footnotes, and interactivity.
 - `data.csv` is the source for table rows.
 - `notes.csv` is the source for footnote notes.
+- `favicon.svg` is the site icon.
+- `og-preview.png` is the preview image for social media.
 - `README.md` describes the data format for contributors.
 
 The project does not use a bundler, package manager, or server-side code.
@@ -53,6 +55,10 @@ The project has no automated tests. After making changes, verify manually that:
 - the first row and first column remain sticky;
 - theme switching works and persists in `localStorage`;
 - footnotes in `[1]` format are converted to `sup` and scroll to the corresponding note;
+- search works correctly, shows result counts, and the clear button (X) resets the state;
+- column sorting works (Natural Sort), and the active column has the `.active-sort` class;
+- URL parameters (`q`, `sort`, `dir`) correctly reflect and restore the page state;
+- keyboard navigation works (Tab focus on headers, Enter/Space for sorting);
 - values with `|good` and `|warn` suffixes are highlighted;
 - horizontal table scrolling works on narrow screens.
 
@@ -85,9 +91,11 @@ For CSV edits, also verify that:
 - Do not change the public format of `data.csv` or `notes.csv` without updating README.
 - When changing project structure, run commands, deployment, CSV format, highlight CSS classes, or other working rules, update this `AGENTS.md`.
 - If this `AGENTS.md` needs additions or corrections, write them in English.
-- Account for the fact that `renderFootnotes()` currently keeps compatibility with `**` by replacing it with `[3]`.
 - When adding new highlight classes, update CSS, README, and this file.
 - When inserting data into the DOM, avoid unsafe HTML where it is not required. Currently, HTML is only needed for footnotes inside cells.
+- Maintain accessibility by using `aria-label`, `role`, and `tabindex` for interactive elements.
+- When adding/modifying interactive features, ensure they synchronize with the URL using `history.replaceState`.
+- Keep the `og:*` meta tags and preview image updated if the project branding changes.
 
 ## Style
 

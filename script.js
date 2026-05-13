@@ -24,14 +24,27 @@ function setTheme(theme) {
 ===================== */
 
 Promise.all([
-    fetch("data.csv").then(r => r.text()),
-    fetch("notes.csv").then(r => r.text())
+    fetch("data.csv").then(r => {
+        if (!r.ok) throw new Error("data.csv");
+        return r.text();
+    }),
+    fetch("notes.csv").then(r => {
+        if (!r.ok) throw new Error("notes.csv");
+        return r.text();
+    })
 ]).then(([dataText, notesText]) => {
     const data = parseCSV(dataText);
     const notes = parseNotes(notesText);
 
     buildTable(data, notes);
     renderNotes(notes);
+}).catch(() => {
+    const wrap = document.querySelector(".table-wrap");
+    wrap.textContent = "";
+    const msg = document.createElement("p");
+    msg.className = "load-error";
+    msg.textContent = "\u26A0 Ошибка загрузки данных. Попробуйте обновить страницу.";
+    wrap.appendChild(msg);
 });
 
 /* =====================
@@ -91,9 +104,7 @@ function parseNotes(text) {
 }
 
 function renderFootnotes(text, notes) {
-    let result = text.replace(/\*\*/g, "[3]");
-
-    return result.replace(/\[(\d+)\]/g, (_, n) => {
+    return text.replace(/\[(\d+)\]/g, (_, n) => {
         return notes[n]
         ? `<sup data-note="${n}" title="${notes[n]}">${n}</sup>`
         : `<sup>${n}</sup>`;
@@ -108,8 +119,16 @@ function buildTable(rows, notes) {
     const table = document.getElementById("compare-table");
 
     const thead = document.createElement("thead");
-    thead.innerHTML =
-    "<tr>" + rows[0].map(h => `<th>${h}</th>`).join("") + "</tr>";
+    const headerRow = document.createElement("tr");
+    rows[0].forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        th.setAttribute("role", "button");
+        th.setAttribute("tabindex", "0");
+        th.setAttribute("aria-label", `Сортировать по: ${h}`);
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
@@ -136,6 +155,15 @@ function buildTable(rows, notes) {
     table.appendChild(tbody);
     enableColumnHover(table);
     enableFootnoteClicks();
+    
+    // Initialize search and sort with URL state
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get("q") || "";
+    const sortIdx = params.get("sort");
+    const sortDir = params.get("dir") || "asc";
+
+    enableSearch(query);
+    enableSorting(table, sortIdx !== null ? parseInt(sortIdx) : -1, sortDir === "asc");
 }
 
 /* =====================
@@ -193,4 +221,99 @@ function enableFootnoteClicks() {
             }, 2000);
         });
     });
+}
+
+function enableSearch(initialQuery = "") {
+    const input = document.getElementById("search-input");
+    const clearBtn = document.getElementById("search-clear");
+    const countEl = document.getElementById("search-count");
+    const tbody = document.querySelector("#compare-table tbody");
+
+    const performSearch = (query) => {
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        let visible = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const match = !query || text.includes(query.toLowerCase().trim());
+            row.classList.toggle("hidden-row", !match);
+            if (match) visible++;
+        });
+
+        countEl.textContent = query
+            ? visible + " из " + rows.length
+            : "";
+            
+        // Toggle clear button
+        if (clearBtn) clearBtn.hidden = !query;
+
+        // Update URL
+        const url = new URL(window.location);
+        if (query) url.searchParams.set("q", query);
+        else url.searchParams.delete("q");
+        window.history.replaceState({}, "", url);
+    };
+
+    input.value = initialQuery;
+    if (initialQuery) performSearch(initialQuery);
+
+    input.addEventListener("input", (e) => performSearch(e.target.value));
+    
+    if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+            input.value = "";
+            performSearch("");
+            input.focus();
+        });
+    }
+}
+
+function enableSorting(table, initialIdx = -1, initialAsc = true) {
+    const headers = table.querySelectorAll("thead th");
+    const tbody = table.querySelector("tbody");
+    let currentSort = { index: initialIdx, asc: initialAsc };
+
+    const performSort = (index, isAsc) => {
+        // Update UI
+        headers.forEach(h => h.classList.remove("sort-asc", "sort-desc", "active-sort"));
+        const th = headers[index];
+        th.classList.add(isAsc ? "sort-asc" : "sort-desc", "active-sort");
+
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        rows.sort((a, b) => {
+            const valA = a.cells[index].innerText.trim();
+            const valB = b.cells[index].innerText.trim();
+            return isAsc 
+                ? valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' })
+                : valB.localeCompare(valA, undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set("sort", index);
+        url.searchParams.set("dir", isAsc ? "asc" : "desc");
+        window.history.replaceState({}, "", url);
+    };
+
+    headers.forEach((th, index) => {
+        const handleSort = () => {
+            const isAsc = currentSort.index === index ? !currentSort.asc : true;
+            performSort(index, isAsc);
+            currentSort = { index, asc: isAsc };
+        };
+
+        th.addEventListener("click", handleSort);
+        th.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleSort();
+            }
+        });
+    });
+
+    if (initialIdx !== -1) {
+        performSort(initialIdx, initialAsc);
+    }
 }

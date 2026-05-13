@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <title>Сравнение среднебюджетных роутеров MT7981</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Сравнительная таблица характеристик бюджетных роутеров на базе MediaTek MT7981 с поддержкой OpenWRT">
+    <!-- Open Graph / Facebook / Telegram -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Сравнение роутеров MT7981 (OpenWRT)">
+    <meta property="og:description" content="Удобная таблица характеристик, поиск и сортировка роутеров на базе MediaTek MT7981.">
+    <meta property="og:image" content="og-preview.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,6 +25,14 @@
         🌙
     </button>
 </header>
+
+<div class="search-bar">
+    <div class="search-wrapper">
+        <input type="text" id="search-input" placeholder="Поиск по таблице..." aria-label="Поиск по таблице">
+        <button id="search-clear" class="search-clear" aria-label="Очистить поиск" hidden>&times;</button>
+    </div>
+    <span id="search-count" class="search-count"></span>
+</div>
 
 <div class="table-wrap">
     <table id="compare-table"></table>
